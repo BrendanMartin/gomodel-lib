@@ -1,0 +1,170 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel redundant runs on the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GO_VERSION: "1.26.2"
+
+# Restrict token permissions to minimum required
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.10
+          # Temporary workaround: config verification fetches the remote JSON schema and
+          # intermittently times out in CI before lint runs. Re-enable by 2026-04-01 once
+          # the schema fetch is reliable again; track in this PR/branch discussion.
+          verify: false
+
+  test-unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run unit tests
+        run: make test-race
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v6
+        with:
+          files: ./coverage.out
+          fail_ci_if_error: false
+        continue-on-error: true
+
+  test-dashboard:
+    name: Dashboard Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Run dashboard JavaScript tests
+        run: make test-dashboard
+
+  test-e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run E2E tests
+        run: go test -v -tags=e2e -timeout=5m ./tests/e2e/...
+
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run integration tests
+        run: go test -v -tags=integration -timeout=10m ./tests/integration/...
+
+  test-contract:
+    name: Contract Replay Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run contract replay tests
+        run: go test -v -tags=contract -timeout=5m ./tests/contract/...
+
+  performance:
+    name: Performance Guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run hot-path performance guard
+        # Thresholds are maintained in tests/perf/hotpath_test.go.
+        run: make perf-check
+
+  docs-validate:
+    name: Docs Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      # To avoid possible issues related to missing libsecret binary on the runner runner
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libsecret-1-dev
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Validate docs.json
+        run: npx mint validate
+        working-directory: docs
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [lint, test-unit, test-dashboard, test-e2e, integration, test-contract, performance]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Build
+        run: go build -v ./cmd/gomodel

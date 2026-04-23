@@ -1,0 +1,125 @@
+---
+title: "Quick Start"
+description: "GoModel AI gateway quick start: run an OpenAI-compatible LLM gateway in 30 seconds, send your first request, and open the admin panel."
+icon: "rocket"
+---
+
+## Run GoModel in 30 Seconds
+
+GoModel is an OpenAI-compatible AI gateway. You can connect one endpoint and
+route traffic across OpenAI, Anthropic, Gemini, xAI, Groq, OpenRouter, Z.ai,
+Azure OpenAI, Oracle, Ollama, and more while keeping auth, audit logs, and admin
+visibility in one place.
+
+### 1. Start GoModel
+
+```bash
+docker run --rm -p 8080:8080 \
+  -e LOGGING_ENABLED=true \
+  -e LOGGING_LOG_BODIES=true \
+  -e LOG_FORMAT=text \
+  -e LOGGING_LOG_HEADERS=true \
+  -e GOMODEL_MASTER_KEY="change-me" \
+  -e OPENAI_API_KEY="sk-..." \
+  enterpilot/gomodel
+```
+
+<Note>
+  Set at least one provider credential or base URL
+  (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `XAI_API_KEY`,
+  `GROQ_API_KEY`, `OPENROUTER_API_KEY`, `ZAI_API_KEY`, `AZURE_API_KEY` +
+  `AZURE_BASE_URL`, `ORACLE_API_KEY` + `ORACLE_BASE_URL`,
+  `OLLAMA_BASE_URL`) or GoModel will have no models to route. GoModel also
+  works well with additional OpenAI-compatible providers out of the box.
+</Note>
+
+### 2. Send your first request
+
+Use `curl` or the OpenAI SDKs for Python and JavaScript against the same
+OpenAI-compatible endpoint:
+
+<CodeGroup>
+
+```bash curl
+curl http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer change-me" \
+  -d '{
+    "model": "gpt-4o-mini",
+    "messages": [{"role": "user", "content": "Say hello in one sentence."}]
+  }'
+```
+
+```python Python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="http://localhost:8080/v1",
+    api_key="change-me",
+)
+
+completion = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=[{"role": "user", "content": "Say hello in one sentence."}],
+)
+
+print(completion.choices[0].message.content)
+```
+
+```javascript JavaScript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "http://localhost:8080/v1",
+  apiKey: "change-me",
+});
+
+const completion = await client.chat.completions.create({
+  model: "gpt-4o-mini",
+  messages: [{ role: "user", content: "Say hello in one sentence." }],
+});
+
+console.log(completion.choices[0].message.content);
+```
+
+</CodeGroup>
+
+### 3. Open the Admin Panel
+
+Open this URL in your browser:
+
+`http://localhost:8080/admin/dashboard`
+
+<Tip>
+  Dashboard UI is enabled by default (`ADMIN_UI_ENABLED=true`). Admin API
+  endpoints are at `/admin/api/v1/*` and use the same bearer auth as the main
+  API.
+</Tip>
+
+## Verify Models
+
+List currently available models:
+
+```bash
+curl -s http://localhost:8080/v1/models \
+  -H "Authorization: Bearer change-me"
+```
+
+Use one of those model IDs in your requests.
+
+## Admin Panel Preview
+
+### Usage Analytics
+
+![GoModel AI gateway usage analytics dashboard](./images/usage-analytics.png)
+
+### Audit Logs
+
+![GoModel AI gateway audit logs dashboard](./images/audit-logs.png)
+
+## Next Steps
+
+- Understand response caching: [Cache](/features/cache)
+- Configure production settings: [Configuration](/advanced/configuration)
+- Add request policies: [Guardrails](/advanced/guardrails)
+- Connect OpenClaw: [Using GoModel with OpenClaw](/guides/openclaw)

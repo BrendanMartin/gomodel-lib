@@ -1,0 +1,95 @@
+{
+    "$schema": "https://mintlify.com/docs.json",
+    "theme": "maple",
+    "name": "GoModel",
+    "logo": {
+        "light": "/wordmark-light.svg",
+        "dark": "/wordmark-dark.svg"
+    },
+    "favicon": {
+        "light": "/logo.svg",
+        "dark": "/logo.svg"
+    },
+    "colors": {
+        "primary": "#755c3d"
+    },
+    "icons": {
+        "library": "lucide"
+    },
+    "api": {
+        "url": "full"
+    },
+    "navigation": {
+        "tabs": [
+            {
+                "tab": "Documentation",
+                "icon": "book-open",
+                "pages": [
+                    {
+                        "group": "Getting Started",
+                        "icon": "rocket",
+                        "pages": [
+                            "getting-started/quickstart"
+                        ]
+                    },
+                    {
+                        "group": "Features",
+                        "icon": "sparkles",
+                        "pages": [
+                            "features/aliases",
+                            "features/user-path",
+                            "features/passthrough-api",
+                            "features/cache",
+                            "features/failover"
+                        ]
+                    },
+                    {
+                        "group": "Advanced",
+                        "icon": "settings-2",
+                        "pages": [
+                            "advanced/configuration",
+                            "advanced/config-yaml",
+                            "advanced/responses-api",
+                            "advanced/guardrails",
+                            "advanced/workflows",
+                            "advanced/admin-endpoints"
+                        ]
+                    },
+                    {
+                        "group": "About",
+                        "icon": "info",
+                        "pages": [
+                            "about/who-we-are",
+                            "about/values",
+                            "about/technical-philosophy",
+                            "about/roadmap",
+                            "about/license",
+                            "about/benchmarks"
+                        ]
+                    }
+                ]
+            },
+            {
+                "tab": "Guides",
+                "icon": "compass",
+                "pages": [
+                    "guides/openclaw",
+                    "guides/oracle",
+                    "guides/vllm",
+                    "guides/multiple-ollama",
+                    "guides/claude-code",
+                    "guides/codex",
+                    "guides/opencode-and-other-agents"
+                ]
+            },
+            {
+                "tab": "API Reference",
+                "icon": "braces",
+                "openapi": {
+                    "source": "openapi.json",
+                    "directory": "api-reference"
+                }
+            }
+        ]
+    }
+}

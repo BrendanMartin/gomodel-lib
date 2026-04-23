@@ -1,0 +1,273 @@
+# GoModel Configuration (optional)
+# Copy to config/config.yaml to customize.
+# Environment variables always override values in this file.
+# All settings have sensible defaults — no config file is required.
+
+server:
+  port: "8080"
+  master_key: "your-secret-key"
+  body_size_limit: "10M"
+  pprof_enabled: false # expose /debug/pprof/* for local profiling only
+  enable_passthrough_routes: true # expose /p/{provider}/{endpoint} passthrough routes
+  allow_passthrough_v1_alias: true # allow /p/{provider}/v1/... while keeping /p/{provider}/... canonical
+  enabled_passthrough_providers: ["openai", "anthropic", "openrouter", "zai", "vllm"] # providers enabled on /p/{provider}/...
+
+models:
+  enabled_by_default: true # env: MODELS_ENABLED_BY_DEFAULT; when false, models stay unavailable until an override allows one or more user paths
+  overrides_enabled: true # env: MODEL_OVERRIDES_ENABLED; load/enforce persisted model overrides and enable dashboard editing
+
+cache:
+  model:
+    refresh_interval: 3600 # how often to refresh the model registry (seconds, default: 3600)
+    local:
+      cache_dir: ".cache" # local cache directory
+    # To use Redis instead of local cache, remove `local` and uncomment:
+    # redis:
+    #   url: "redis://localhost:6379"
+    #   key: "gomodel:models"
+    #   ttl: 86400 # 24 hours in seconds
+  # response:
+  #   simple: # omit the whole `simple` key to disable exact-match caching (unless RESPONSE_CACHE_SIMPLE_ENABLED=true)
+  #     enabled: true # default when `simple` is present; set false to disable while keeping the block
+  #     redis:
+  #       url: "redis://localhost:6379"
+  #       key: "gomodel:response:"
+  #       ttl: 3600
+  #   semantic: # omit the whole `semantic` key to disable semantic caching (unless SEMANTIC_CACHE_ENABLED=true)
+  #     enabled: true
+  #     embedder:
+  #       provider: openai # must match a key under `providers` (openai, gemini, groq, …)
+  #       model: text-embedding-3-small # optional; provider-specific defaults apply if omitted
+  #     vector_store:
+  #       type: qdrant # required: qdrant | pgvector | pinecone | weaviate (pick one block below)
+  #       qdrant:
+  #         url: "http://localhost:6333"
+  #         collection: "gomodel_semantic"
+  #         api_key: "" # optional for local Qdrant
+  #       # pgvector:
+  #       #   url: "postgres://user:pass@localhost:5432/gomodel"
+  #       #   table: "gomodel_semantic_cache" # optional; default if omitted
+  #       #   dimension: 1536 # must match embedding model output
+  #       # pinecone:
+  #       #   host: "https://your-index.svc.region.pinecone.io" # data-plane host
+  #       #   api_key: "..."
+  #       #   namespace: "" # optional
+  #       #   dimension: 1536 # must match your Pinecone index
+  #       # weaviate:
+  #       #   url: "http://localhost:8080"
+  #       #   class: "GomodelSemanticCache" # PascalCase recommended (GraphQL)
+  #       #   api_key: "" # optional
+
+storage:
+  type: "sqlite" # "sqlite", "postgresql", or "mongodb"
+  sqlite:
+    path: "data/gomodel.db"
+  postgresql:
+    url: "postgres://user:pass@localhost/gomodel"
+    max_conns: 10
+  mongodb:
+    url: "mongodb://localhost:27017"
+    database: "gomodel"
+
+logging:
+  enabled: false
+  log_bodies: true # WARNING: may contain sensitive data
+  log_headers: true
+  buffer_size: 1000
+  flush_interval: 5 # seconds
+  retention_days: 30 # 0 = keep forever
+  only_model_interactions: true
+
+usage:
+  enabled: true
+  enforce_returning_usage_data: true
+  buffer_size: 1000
+  flush_interval: 5
+  retention_days: 90
+
+metrics:
+  enabled: false
+  endpoint: "/metrics"
+
+http:
+  timeout: 600 # seconds (10 minutes)
+  response_header_timeout: 600
+
+workflows:
+  refresh_interval: 1m
+
+# Global resilience settings (applied to all providers by default)
+# Individual providers can override any of these values.
+resilience:
+  retry:
+    max_retries: 3
+    initial_backoff: 1s
+    max_backoff: 30s
+    backoff_factor: 2.0
+    jitter_factor: 0.1
+
+guardrails:
+  enabled: false
+  enable_for_batch_processing: false
+  rules:
+    # Each entry is a guardrail instance. Multiple instances of the same type are supported.
+    # Guardrails with the same "order" run in parallel; different orders run sequentially.
+
+    - name: "safety-prompt"
+      type: "system_prompt"
+      order: 0
+      system_prompt:
+        mode: "decorator" # "inject", "override", or "decorator"
+        content: "Always be safe and respectful."
+
+    # Example: a second system_prompt instance running at the same order (parallel)
+    # - name: "compliance-prompt"
+    #   type: "system_prompt"
+    #   order: 0
+    #   system_prompt:
+    #     mode: "inject"
+    #     content: "Follow all compliance rules."
+
+    # Names support spaces and unicode characters:
+    # - name: "проверка безопасности"
+    #   type: "system_prompt"
+    #   order: 0
+    #   system_prompt:
+    #     mode: "decorator"
+    #     content: "Соблюдайте все правила безопасности."
+    # - name: "安全検査"
+    #   type: "system_prompt"
+    #   order: 1
+    #   system_prompt:
+    #     mode: "inject"
+    #     content: "Follow safety guidelines."
+
+    # Example: rewrite user messages with an auxiliary model before the main call.
+    # The default prompt is a LiteLLM-derived anonymization prompt; override it to
+    # implement other LLM-based rewrites.
+    # - name: "privacy-rewrite"
+    #   type: "llm_based_altering"
+    #   user_path: "/team/privacy" # optional base path for internal rewrite calls and audit logs
+    #   order: 1
+    #   llm_based_altering:
+    #     model: "gpt-4o-mini"
+    #     roles: ["user"]
+    #     max_tokens: 4096
+    #     skip_content_prefix: "### safe"
+    #     # prompt: "Custom rewrite instructions here."
+
+fallback:
+  default_mode: "manual" # "off", "manual", or "auto"; default is "manual"
+  manual_rules_path: "config/fallback.example.json" # optional JSON map: {"model": ["fallback-1", "provider/model"]}; when omitted, manual mode has no fallback candidates
+  overrides:
+    "gpt-4o":
+      mode: "manual" # use only manual fallbacks for this model
+    "claude-sonnet-4":
+      mode: "off" # disable fallback just for this model
+
+providers:
+  openai:
+    type: openai
+    api_key: "sk-..."
+    # Per-provider resilience overrides (optional).
+    # Only specified fields override the global defaults above.
+    # resilience:
+    #   retry:
+    #     max_retries: 5
+
+  anthropic:
+    type: anthropic
+    api_key: "sk-ant-..."
+
+  gemini:
+    type: gemini
+    api_key: "..."
+
+  xai:
+    type: xai
+    api_key: "..."
+
+  groq:
+    type: groq
+    api_key: "gsk_..."
+
+  zai:
+    type: zai
+    api_key: "..."
+    # Optional: use GLM Coding Plan endpoint instead of the general endpoint.
+    # base_url: "https://api.z.ai/api/coding/paas/v4"
+
+  ollama:
+    type: ollama
+    base_url: "http://localhost:11434/v1"
+
+  vllm:
+    type: vllm
+    base_url: "http://localhost:8000/v1"
+    # Optional: set this only when vllm serve was started with --api-key.
+    # api_key: "token-abc123"
+
+  # Custom OpenAI-compatible provider
+  # my-provider:
+  #   type: openai
+  #   base_url: "https://api.example.com/v1"
+  #   api_key: "..."
+
+  # Example: Groq (OpenAI-compatible)
+  # groq:
+  #   type: "openai"
+  #   base_url: "https://api.groq.com/openai/v1"
+  #   api_key: "${GROQ_API_KEY}"
+
+  # Example: OpenRouter
+  # openrouter:
+  #   type: "openrouter"
+  #   base_url: "https://openrouter.ai/api/v1"
+  #   api_key: "${OPENROUTER_API_KEY}"
+
+  # Example: Azure OpenAI
+  # azure:
+  #   type: "azure"
+  #   base_url: "${AZURE_BASE_URL}"
+  #   api_key: "${AZURE_API_KEY}"
+  #   api_version: "2024-10-21"
+
+  # Example: Oracle OpenAI-compatible endpoint
+  # oracle:
+  #   type: "oracle"
+  #   base_url: "${ORACLE_BASE_URL}"
+  #   api_key: "${ORACLE_API_KEY}"
+  #   # Optional when ORACLE_MODELS is set as a comma-separated env var instead.
+  #   models:
+  #     - openai.gpt-oss-120b
+  #     - xai.grok-3
+
+  # Example: DeepSeek (OpenAI-compatible)
+  # deepseek:
+  #   type: "openai"
+  #   base_url: "https://api.deepseek.com/v1"
+  #   api_key: "${DEEPSEEK_API_KEY}"
+
+  # Example: local Ollama server with explicit per-model metadata.
+  # Use the rich entry form to declare context_window, pricing, capabilities,
+  # etc. for models that aren't in the upstream ai-model-list registry. Plain
+  # string entries still work and produce unenriched models as before.
+  # Declared fields are merged onto any remote-registry entry; operator values
+  # win per-field.
+  # nippur:
+  #   type: "ollama"
+  #   base_url: "http://127.0.0.1:8080/v1"
+  #   models:
+  #     - id: GLM-4.7-Flash
+  #       metadata:
+  #         display_name: "GLM 4.7 Flash (local)"
+  #         context_window: 131072
+  #         max_output_tokens: 8192
+  #         modes: ["chat"]
+  #         capabilities:
+  #           tools: true
+  #         pricing:
+  #           currency: USD
+  #           input_per_mtok: 0
+  #           output_per_mtok: 0
+  #     - Gemma4-31B
