@@ -7,7 +7,7 @@ import (
 	"strings"
 	"unicode"
 
-	"gomodel/config"
+	"github.com/BrendanMartin/gomodel-lib/config"
 	"github.com/BrendanMartin/gomodel-lib/core"
 )
 
@@ -147,9 +147,6 @@ func parseProviderEnvKey(prefix, key string, spec DiscoveryConfig) (string, prov
 
 	for _, candidate := range fields {
 		if candidate.field == providerEnvFieldAPIVersion && !spec.SupportsAPIVersion {
-			continue
-		}
-		if candidate.field == providerEnvFieldModels && !spec.SupportsModelsEnv {
 			continue
 		}
 		if rest == candidate.name {

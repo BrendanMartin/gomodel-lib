@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 
-	"gomodel/config"
+	"github.com/BrendanMartin/gomodel-lib/config"
 	"github.com/BrendanMartin/gomodel-lib/storage"
 )
 

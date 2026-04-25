@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"gomodel/config"
+	"github.com/BrendanMartin/gomodel-lib/config"
 )
 
 func TestNewEmbedder_EmptyProvider(t *testing.T) {

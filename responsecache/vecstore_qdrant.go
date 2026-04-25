@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"gomodel/config"
+	"github.com/BrendanMartin/gomodel-lib/config"
 )
 
 type qdrantStore struct {

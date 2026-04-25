@@ -6,7 +6,7 @@ import (
 	"sort"
 	"sync"
 
-	"gomodel/config"
+	"github.com/BrendanMartin/gomodel-lib/config"
 	"github.com/BrendanMartin/gomodel-lib/core"
 	"github.com/BrendanMartin/gomodel-lib/llmclient"
 )
@@ -28,7 +28,6 @@ type DiscoveryConfig struct {
 	RequireBaseURL     bool
 	AllowAPIKeyless    bool
 	SupportsAPIVersion bool
-	SupportsModelsEnv  bool
 }
 
 // Registration contains metadata for registering a provider with the factory.

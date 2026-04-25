@@ -20,7 +20,7 @@ import (
 	"github.com/cespare/xxhash/v2"
 	"github.com/labstack/echo/v5"
 
-	"gomodel/config"
+	"github.com/BrendanMartin/gomodel-lib/config"
 	"github.com/BrendanMartin/gomodel-lib/auditlog"
 	"github.com/BrendanMartin/gomodel-lib/core"
 	"github.com/BrendanMartin/gomodel-lib/embedding"

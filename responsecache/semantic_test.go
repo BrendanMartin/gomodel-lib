@@ -11,7 +11,7 @@ import (
 
 	"github.com/labstack/echo/v5"
 
-	"gomodel/config"
+	"github.com/BrendanMartin/gomodel-lib/config"
 	"github.com/BrendanMartin/gomodel-lib/auditlog"
 	"github.com/BrendanMartin/gomodel-lib/core"
 )

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"gomodel/config"
+	"github.com/BrendanMartin/gomodel-lib/config"
 )
 
 const defaultTimeout = 120 * time.Second

@@ -13,7 +13,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"gomodel/config"
+	"github.com/BrendanMartin/gomodel-lib/config"
 )
 
 type weaviateStore struct {

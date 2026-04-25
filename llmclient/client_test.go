@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	goconfig "gomodel/config"
+	goconfig "github.com/BrendanMartin/gomodel-lib/config"
 	"github.com/BrendanMartin/gomodel-lib/core"
 )
 

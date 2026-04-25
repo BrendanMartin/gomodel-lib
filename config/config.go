@@ -8,6 +8,7 @@ import (
 	"io"
 	"math"
 	"os"
+	"path"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -145,6 +146,44 @@ type ModelsConfig struct {
 	// provider models and returns only alias-projected model entries.
 	// Default: false.
 	KeepOnlyAliasesAtModelsEndpoint bool `yaml:"keep_only_aliases_at_models_endpoint" env:"KEEP_ONLY_ALIASES_AT_MODELS_ENDPOINT"`
+
+	// ConfiguredProviderModelsMode controls how providers.<name>.models and
+	// provider *_MODELS env vars affect the provider model inventory.
+	// Supported values: "fallback", "allowlist". Default: "fallback".
+	ConfiguredProviderModelsMode ConfiguredProviderModelsMode `yaml:"configured_provider_models_mode" env:"CONFIGURED_PROVIDER_MODELS_MODE"`
+}
+
+// ConfiguredProviderModelsMode controls how explicitly configured provider
+// model lists are applied to the discovered model inventory.
+type ConfiguredProviderModelsMode string
+
+const (
+	ConfiguredProviderModelsModeFallback  ConfiguredProviderModelsMode = "fallback"
+	ConfiguredProviderModelsModeAllowlist ConfiguredProviderModelsMode = "allowlist"
+)
+
+// Valid reports whether mode is one of the supported configured-provider-models modes.
+func (m ConfiguredProviderModelsMode) Valid() bool {
+	switch NormalizeConfiguredProviderModelsMode(m) {
+	case ConfiguredProviderModelsModeFallback, ConfiguredProviderModelsModeAllowlist:
+		return true
+	default:
+		return false
+	}
+}
+
+// NormalizeConfiguredProviderModelsMode canonicalizes a configured provider models mode.
+func NormalizeConfiguredProviderModelsMode(mode ConfiguredProviderModelsMode) ConfiguredProviderModelsMode {
+	return ConfiguredProviderModelsMode(strings.ToLower(strings.TrimSpace(string(mode))))
+}
+
+// ResolveConfiguredProviderModelsMode canonicalizes mode and applies the process default.
+func ResolveConfiguredProviderModelsMode(mode ConfiguredProviderModelsMode) ConfiguredProviderModelsMode {
+	mode = NormalizeConfiguredProviderModelsMode(mode)
+	if mode == "" {
+		return ConfiguredProviderModelsModeFallback
+	}
+	return mode
 }
 
 // FallbackConfig holds translated-route model fallback policy.
@@ -798,6 +837,7 @@ func applyResponseSemanticEnv(resp *ResponseCacheConfig) error {
 // ServerConfig holds HTTP server configuration
 type ServerConfig struct {
 	Port           string `yaml:"port" env:"PORT"`
+	BasePath       string `yaml:"base_path" env:"BASE_PATH"`             // URL path prefix where the app is mounted (e.g., "/g")
 	MasterKey      string `yaml:"master_key" env:"GOMODEL_MASTER_KEY"`   // Optional: Master key for authentication
 	BodySizeLimit  string `yaml:"body_size_limit" env:"BODY_SIZE_LIMIT"` // Max request body size (e.g., "10M", "1024K")
 	SwaggerEnabled bool   `yaml:"swagger_enabled" env:"SWAGGER_ENABLED"` // Whether to expose the Swagger UI at /swagger/index.html
@@ -812,6 +852,23 @@ type ServerConfig struct {
 	// /p/{provider}/... passthrough routes. Default:
 	// ["openai", "anthropic", "openrouter", "zai", "vllm"].
 	EnabledPassthroughProviders []string `yaml:"enabled_passthrough_providers" env:"ENABLED_PASSTHROUGH_PROVIDERS"`
+}
+
+// NormalizeBasePath canonicalizes the public mount path for the HTTP server.
+// Empty, whitespace-only, and "/" all resolve to root.
+func NormalizeBasePath(value string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" || trimmed == "/" {
+		return "/"
+	}
+	if !strings.HasPrefix(trimmed, "/") {
+		trimmed = "/" + trimmed
+	}
+	normalized := path.Clean(trimmed)
+	if normalized == "." || normalized == "/" {
+		return "/"
+	}
+	return normalized
 }
 
 // MetricsConfig holds observability configuration for Prometheus metrics
@@ -874,6 +931,7 @@ func buildDefaultConfig() *Config {
 	return &Config{
 		Server: ServerConfig{
 			Port:                    "8080",
+			BasePath:                "/",
 			SwaggerEnabled:          true,
 			PprofEnabled:            false,
 			EnablePassthroughRoutes: true,
@@ -890,6 +948,7 @@ func buildDefaultConfig() *Config {
 			EnabledByDefault:                true,
 			OverridesEnabled:                true,
 			KeepOnlyAliasesAtModelsEndpoint: false,
+			ConfiguredProviderModelsMode:    ConfiguredProviderModelsModeFallback,
 		},
 		Cache: CacheConfig{
 			Model: ModelCacheConfig{
@@ -976,6 +1035,11 @@ func Load() (*LoadResult, error) {
 
 	if err := applyEnvOverrides(cfg); err != nil {
 		return nil, err
+	}
+	cfg.Server.BasePath = NormalizeBasePath(cfg.Server.BasePath)
+	cfg.Models.ConfiguredProviderModelsMode = ResolveConfiguredProviderModelsMode(cfg.Models.ConfiguredProviderModelsMode)
+	if !cfg.Models.ConfiguredProviderModelsMode.Valid() {
+		return nil, fmt.Errorf("models.configured_provider_models_mode must be one of: fallback, allowlist")
 	}
 
 	if err := loadFallbackConfig(&cfg.Fallback); err != nil {

@@ -14,6 +14,7 @@ especially:
 - per-provider resilience overrides
 - custom provider instance names that do not fit the generated
   `<provider-type>-<suffix>` env naming
+- richer reviewable provider model lists, especially when using allowlist mode
 - larger nested config that is easier to review in one file
 
 For multiple provider instances, env vars support
@@ -23,9 +24,12 @@ For multiple provider instances, env vars support
 `OLLAMA_A_BASE_URL` registers `ollama-a`. Azure also supports
 `<PROVIDER>_<SUFFIX>_API_VERSION`.
 
-For Oracle specifically, a single fallback model list can now stay in env via
-`ORACLE_MODELS`. Use suffixed env vars such as `ORACLE_US_MODELS` for multiple
-Oracle instances without YAML.
+Configured provider model lists can stay in env via `<PROVIDER>_MODELS`, for
+example `OPENROUTER_MODELS`, `ORACLE_MODELS`, `AZURE_MODELS`, or `VLLM_MODELS`.
+Set `CONFIGURED_PROVIDER_MODELS_MODE=fallback` (default) to use those lists only
+when upstream `/models` fails or is empty, or `allowlist` to expose only the
+configured models for providers that define a list and skip their upstream
+`/models` calls.
 
 ## Priority Order
 
@@ -44,6 +48,10 @@ The current source of truth lives in the main codebase:
 
 - [config/config.go](https://github.com/ENTERPILOT/GoModel/blob/main/config/config.go)
 - [config/config.example.yaml](https://github.com/ENTERPILOT/GoModel/blob/main/config/config.example.yaml)
+
+For deployments mounted below a domain root, set `server.base_path` or
+`BASE_PATH`. For example, `BASE_PATH=/g` serves the gateway at `/g/v1/...`,
+`/g/admin/...`, and `/g/health`.
 
 ## Docker
 
@@ -74,3 +82,28 @@ services:
   If env vars and YAML both define the same setting, the environment variable
   wins.
 </Tip>
+
+## Gotchas
+
+### Unresolved `${VAR}` placeholders drop the provider
+
+If `${OPENAI_API_KEY}` appears in YAML but the env var is not actually set, the
+literal string `${OPENAI_API_KEY}` ends up as the API key value. The credential
+filter detects the `${` substring and removes the provider entirely. This also
+applies if `${VAR}` appears in the middle of the value, such as
+`prefix-${OPENAI_API_KEY}`. Always verify your env vars are exported before
+starting the process, or supply a default: `${OPENAI_API_KEY:-}`.
+
+### Per-provider resilience can only come from YAML
+
+The env-var override walk skips `map` fields. `RETRY_MAX_RETRIES` changes the
+global default for all providers but cannot target a single provider.
+Per-provider tuning requires a `providers.<name>.resilience:` block in
+`config.yaml`.
+
+### Partial YAML leaves the rest at defaults
+
+YAML is unmarshalled onto a struct that has already been populated with
+built-in defaults. Only fields that appear in the file are written. Omitting
+`max_backoff` from `resilience.retry` leaves it at its built-in default; you do
+not need to repeat defaults you are happy with.

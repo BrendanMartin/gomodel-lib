@@ -20,6 +20,15 @@
         "url": "full"
     },
     "navigation": {
+        "global": {
+            "anchors": [
+                {
+                    "anchor": "Discord",
+                    "icon": "/discord.svg",
+                    "href": "https://discord.gg/gaEB9BQSPH"
+                }
+            ]
+        },
         "tabs": [
             {
                 "tab": "Documentation",
@@ -49,6 +58,7 @@
                         "pages": [
                             "advanced/configuration",
                             "advanced/config-yaml",
+                            "advanced/resilience",
                             "advanced/responses-api",
                             "advanced/guardrails",
                             "advanced/workflows",
@@ -79,7 +89,8 @@
                     "guides/multiple-ollama",
                     "guides/claude-code",
                     "guides/codex",
-                    "guides/opencode-and-other-agents"
+                    "guides/opencode-and-other-agents",
+                    "guides/prometheus-metrics"
                 ]
             },
             {

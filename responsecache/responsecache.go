@@ -12,7 +12,7 @@ import (
 
 	"github.com/labstack/echo/v5"
 
-	"gomodel/config"
+	"github.com/BrendanMartin/gomodel-lib/config"
 	"github.com/BrendanMartin/gomodel-lib/cache"
 	"github.com/BrendanMartin/gomodel-lib/core"
 	"github.com/BrendanMartin/gomodel-lib/embedding"

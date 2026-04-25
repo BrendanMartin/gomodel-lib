@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"gomodel/config"
+	"github.com/BrendanMartin/gomodel-lib/config"
 )
 
 // pineconeMetadataValueMax is a conservative limit for a single metadata string (Pinecone ~40KB UTF-8).

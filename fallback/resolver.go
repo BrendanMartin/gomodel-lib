@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"gomodel/config"
+	"github.com/BrendanMartin/gomodel-lib/config"
 	"github.com/BrendanMartin/gomodel-lib/core"
 	"github.com/BrendanMartin/gomodel-lib/providers"
 )
