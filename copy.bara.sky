@@ -1,0 +1,76 @@
+core.workflow(
+    name = "default",
+    origin = git.origin(
+        url = "https://github.com/ENTERPILOT/GoModel",
+        ref = "main",
+    ),
+    destination = git.destination(
+        url = "https://github.com/BrendanMartin/gomodel-lib",
+        fetch = "main",
+        push = "main",
+    ),
+    authoring = authoring.pass_thru("Default <noreply@github.com>"),
+    origin_files = glob(
+        include = ["**"],
+        exclude = [
+            "internal/server/**",
+            "internal/admin/**",
+            "internal/app/**",
+            "cmd/**",
+            "tests/e2e/**",
+            "tests/integration/**",
+            "tests/perf/**",
+            "tests/stress/**",
+        ],
+    ),
+    transformations = [
+        # Promote all kept internal/ packages to top-level
+        core.move("internal/aliases", "aliases"),
+        core.move("internal/auditlog", "auditlog"),
+        core.move("internal/authkeys", "authkeys"),
+        core.move("internal/batch", "batch"),
+        core.move("internal/batchrewrite", "batchrewrite"),
+        core.move("internal/cache", "cache"),
+        core.move("internal/core", "core"),
+        core.move("internal/embedding", "embedding"),
+        core.move("internal/fallback", "fallback"),
+        core.move("internal/gateway", "gateway"),
+        core.move("internal/guardrails", "guardrails"),
+        core.move("internal/httpclient", "httpclient"),
+        core.move("internal/llmclient", "llmclient"),
+        core.move("internal/modeldata", "modeldata"),
+        core.move("internal/modeloverrides", "modeloverrides"),
+        core.move("internal/observability", "observability"),
+        core.move("internal/providers", "providers"),
+        core.move("internal/responsecache", "responsecache"),
+        core.move("internal/responsestore", "responsestore"),
+        core.move("internal/storage", "storage"),
+        core.move("internal/streaming", "streaming"),
+        core.move("internal/usage", "usage"),
+        core.move("internal/version", "version"),
+        core.move("internal/workflows", "workflows"),
+
+        # Rewrite Go import paths: internal packages
+        core.replace(
+            before = "gomodel/internal/${pkg}",
+            after = "github.com/BrendanMartin/gomodel-lib/${pkg}",
+            regex_groups = {"pkg": "[a-zA-Z0-9_/]+"},
+            paths = glob(include = ["**/*.go"]),
+        ),
+
+        # Rewrite Go import paths: non-internal root packages (e.g. config/)
+        core.replace(
+            before = "\"gomodel/${pkg}\"",
+            after = "\"github.com/BrendanMartin/gomodel-lib/${pkg}\"",
+            regex_groups = {"pkg": "[a-zA-Z0-9_/]+"},
+            paths = glob(include = ["**/*.go"]),
+        ),
+
+        # Rewrite go.mod module declaration
+        core.replace(
+            before = "module gomodel",
+            after = "module github.com/BrendanMartin/gomodel-lib",
+            paths = glob(include = ["go.mod"]),
+        ),
+    ],
+)
